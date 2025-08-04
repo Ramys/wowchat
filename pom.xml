@@ -9,9 +9,20 @@
     <version>1.3.3</version>
 
     <properties>
-        <java.version>1.8</java.version>
-        <scala.version.major>2.12</scala.version.major>
-        <scala.version.minor>10</scala.version.minor>
+        <java.version>11</java.version>
+        <scala.version.major>2.13</scala.version.major>
+        <scala.version.minor>12</scala.version.minor>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        
+        <!-- Performance-optimized dependency versions (conservative updates) -->
+        <netty.version>4.1.100.Final</netty.version>
+        <logback.version>1.2.12</logback.version>
+        <scala-logging.version>3.9.4</scala-logging.version>
+        <typesafe-config.version>1.4.2</typesafe-config.version>
+        <emoji-java.version>5.1.1</emoji-java.version>
     </properties>
 
     <dependencies>
@@ -21,32 +32,40 @@
             <version>${scala.version.major}.${scala.version.minor}</version>
         </dependency>
 
-        <!-- Logging -->
+        <!-- Logging - optimized versions -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
+            <version>${logback.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
             <groupId>com.typesafe.scala-logging</groupId>
             <artifactId>scala-logging_${scala.version.major}</artifactId>
-            <version>3.9.2</version>
+            <version>${scala-logging.version}</version>
         </dependency>
 
-        <!-- config -->
+        <!-- Config -->
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
-            <version>1.3.4</version>
+            <version>${typesafe-config.version}</version>
         </dependency>
 
+        <!-- Network - updated Netty for performance -->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.42.Final</version>
+            <version>${netty.version}</version>
         </dependency>
 
+        <!-- Discord API - keep original version for compatibility -->
         <dependency>
             <groupId>net.dv8tion</groupId>
             <artifactId>JDA</artifactId>
@@ -59,19 +78,21 @@
             </exclusions>
         </dependency>
 
+        <!-- Emoji support -->
         <dependency>
             <groupId>com.vdurmont</groupId>
             <artifactId>emoji-java</artifactId>
-            <version>5.1.1</version>
+            <version>${emoji-java.version}</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- Scala compilation -->
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.3.2</version>
+                <version>4.8.1</version>
                 <executions>
                     <execution>
                         <id>scala-compile</id>
@@ -88,19 +109,31 @@
                         <arg>-unchecked</arg>
                         <arg>-deprecation</arg>
                         <arg>-feature</arg>
+                        <arg>-opt:l:inline</arg>
+                        <arg>-opt-inline-from:**</arg>
+                        <arg>-opt-warnings</arg>
                     </args>
                     <javacArgs>
                         <javacArg>-source</javacArg>
                         <javacArg>${java.version}</javacArg>
                         <javacArg>-target</javacArg>
                         <javacArg>${java.version}</javacArg>
+                        <javacArg>-Xlint:all</javacArg>
+                        <javacArg>-parameters</javacArg>
                     </javacArgs>
+                    <jvmArgs>
+                        <jvmArg>-Xms1g</jvmArg>
+                        <jvmArg>-Xmx2g</jvmArg>
+                        <jvmArg>-XX:+UseG1GC</jvmArg>
+                    </jvmArgs>
                 </configuration>
             </plugin>
+
+            <!-- Optimized shade plugin for smaller bundle size -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.1.1</version>
+                <version>3.5.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -111,6 +144,8 @@
                 </executions>
                 <configuration>
                     <finalName>wowchat</finalName>
+                    <minimizeJar>true</minimizeJar>
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
                     <filters>
                         <filter>
                             <artifact>*:*</artifact>
@@ -118,9 +153,26 @@
                                 <exclude>META-INF/*.SF</exclude>
                                 <exclude>META-INF/*.DSA</exclude>
                                 <exclude>META-INF/*.RSA</exclude>
+                                <exclude>META-INF/MANIFEST.MF</exclude>
+                                <exclude>META-INF/LICENSE*</exclude>
+                                <exclude>META-INF/NOTICE*</exclude>
+                                <exclude>META-INF/maven/**</exclude>
                                 <exclude>logback.xml</exclude>
                                 <exclude>*.conf</exclude>
+                                <!-- Exclude unused Netty components -->
+                                <exclude>META-INF/native/**</exclude>
+                                <exclude>META-INF/io.netty.versions.properties</exclude>
+                                <!-- Exclude unused Scala libraries -->
+                                <exclude>scala/tools/**</exclude>
+                                <exclude>scala/reflect/**</exclude>
                             </excludes>
+                        </filter>
+                        <!-- Keep essential Netty native libraries for performance -->
+                        <filter>
+                            <artifact>io.netty:netty-transport-native-*</artifact>
+                            <includes>
+                                <include>META-INF/native/lib*</include>
+                            </includes>
                         </filter>
                     </filters>
                     <transformers>
@@ -128,15 +180,25 @@
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                             <manifestEntries>
                                 <Main-Class>wowchat.WoWChat</Main-Class>
+                                <Built-By>${user.name}</Built-By>
+                                <Build-Jdk>${java.version}</Build-Jdk>
+                                <Implementation-Version>${project.version}</Implementation-Version>
+                                <Class-Path>.</Class-Path>
                             </manifestEntries>
+                        </transformer>
+                        <!-- Merge reference.conf files for Akka/Typesafe config -->
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                            <resource>reference.conf</resource>
                         </transformer>
                     </transformers>
                 </configuration>
             </plugin>
+
+            <!-- Assembly plugin optimization -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.6.0</version>
                 <configuration>
                     <finalName>${project.artifactId}-${project.version}</finalName>
                     <descriptor>src/main/assembly/assembly.xml</descriptor>
@@ -152,14 +214,45 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Compiler optimization -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- Resource optimization -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
     <repositories>
         <repository>
-            <id>jcenter</id>
-            <name>jcenter-bintray</name>
-            <url>http://jcenter.bintray.com</url>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
+        </repository>
+        <repository>
+            <id>dv8tion</id>
+            <name>DV8FromTheWorld</name>
+            <url>https://m2.dv8tion.net/releases</url>
         </repository>
     </repositories>
 </project>

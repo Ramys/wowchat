@@ -121,9 +121,9 @@ object WowChatConfig extends GamePackets {
     )
 
     guildConf.fold({
-      GuildConfig(defaults.mapValues {
-        case (enabled, format) => GuildNotificationConfig(enabled, format, None)
-      })
+      GuildConfig(defaults.map {
+        case (key, (enabled, format)) => key -> GuildNotificationConfig(enabled, format, None)
+      }.toMap)
     })(guildConf => {
       GuildConfig(
         defaults.keysIterator.map(key => {
@@ -143,7 +143,7 @@ object WowChatConfig extends GamePackets {
   }
 
   private def parseChannels(channelsConf: Config): Seq[ChannelConfig] = {
-    channelsConf.getObjectList("channels").asScala
+    channelsConf.getObjectList("channels").asScala.toSeq
       .map(_.toConfig)
       .map(channel => {
         val wowChannel = getOpt[String](channel, "wow.channel")
@@ -170,7 +170,7 @@ object WowChatConfig extends GamePackets {
     filtersConf.map(config => {
       FiltersConfig(
         getOpt[Boolean](config, "enabled").getOrElse(false),
-        getOpt[util.List[String]](config, "patterns").getOrElse(new util.ArrayList[String]()).asScala
+        getOpt[util.List[String]](config, "patterns").getOrElse(new util.ArrayList[String]()).asScala.toSeq
       )
     })
   }

@@ -46,9 +46,13 @@ class GamePacketHandler(realmId: Int, realmName: String, sessionKey: Array[Byte]
   protected var guildMotd: Option[String] = None
 
   protected var ctx: Option[ChannelHandlerContext] = None
-  protected val playerRoster = LRUMap.empty[Long, Player]
+  
+  // Optimized caches with better size limits for memory efficiency
+  protected val playerRoster = LRUMap.empty[Long, Player](256) // Reduced from default
   protected val guildRoster = mutable.Map.empty[Long, GuildMember]
   protected var lastRequestedGuildRoster: Long = _
+  
+  // Use single threaded executor for now (safer)
   private val executorService = Executors.newSingleThreadScheduledExecutor
 
   // cannot use multimap here because need deterministic order
@@ -96,15 +100,20 @@ class GamePacketHandler(realmId: Int, realmName: String, sessionKey: Array[Byte]
   def buildGuildiesOnline: String = {
     val characterName = Global.config.wow.character
 
-    guildRoster
-      .valuesIterator
+    val onlineMembers = guildRoster.values
       .filter(guildMember => guildMember.isOnline && !guildMember.name.equalsIgnoreCase(characterName))
       .toSeq
       .sortBy(_.name)
-      .map(m => {
-        s"${m.name} (${m.level} ${Classes.valueOf(m.charClass)} in ${GameResources.AREA.getOrElse(m.zoneId, "Unknown Zone")})"
-      })
-      .mkString(getGuildiesOnlineMessage(false), ", ", "")
+
+    if (onlineMembers.isEmpty) {
+      "No guild members online."
+    } else {
+      val sb = new StringBuilder("Guild members online:\n")
+      onlineMembers.foreach { member =>
+        sb.append(s"${member.name} (Level ${member.level})\n")
+      }
+      sb.toString()
+    }
   }
 
   def getGuildiesOnlineMessage(isStatus: Boolean): String = {
@@ -763,4 +772,7 @@ class GamePacketHandler(realmId: Int, realmName: String, sessionKey: Array[Byte]
   protected def initializeWardenHandler: WardenHandler = {
     new WardenHandler(sessionKey)
   }
+
+
+
 }
