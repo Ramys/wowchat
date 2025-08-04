@@ -1,23 +1,45 @@
 <configuration>
-
+    <!-- Performance-optimized console appender with async processing -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
+            <!-- Optimized pattern for better performance -->
             <pattern>%d{HH:mm:ss.SSS} %-5level %logger{16} - %msg%n</pattern>
+            <!-- Improve performance by avoiding costly operations -->
+            <immediateFlush>false</immediateFlush>
         </encoder>
     </appender>
 
-    <logger name="net.dv8tion.jda.core.requests.Requester" level="INFO" />
-
-    <logger name="wowchat.game.GamePacketEncoder" level="INFO" />
-    <logger name="wowchat.game.GamePacketEncoderCataclysm" level="INFO" />
-    <logger name="wowchat.game.GamePacketEncoderMoP" level="INFO" />
-
-    <logger name="wowchat.game.GamePacketDecoder" level="INFO" />
-    <logger name="wowchat.game.GamePacketDecoderWotLK" level="INFO" />
-    <logger name="wowchat.game.GamePacketDecoderCataclysm" level="INFO" />
-    <logger name="wowchat.game.GamePacketDecoderMoP" level="INFO" />
-
-    <root level="INFO">
+    <!-- Async appender wrapper for better performance -->
+    <appender name="ASYNC_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="STDOUT" />
+        <!-- Optimize async logging -->
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <maxFlushTime>5000</maxFlushTime>
+        <neverBlock>true</neverBlock>
+    </appender>
+
+    <!-- Reduce verbose logging from network components -->
+    <logger name="io.netty" level="WARN" />
+    <logger name="net.dv8tion.jda" level="INFO" />
+    <logger name="net.dv8tion.jda.api.requests.Requester" level="WARN" />
+
+    <!-- Reduce packet encoder/decoder noise in production -->
+    <logger name="wowchat.game.GamePacketEncoder" level="WARN" />
+    <logger name="wowchat.game.GamePacketEncoderCataclysm" level="WARN" />
+    <logger name="wowchat.game.GamePacketEncoderMoP" level="WARN" />
+
+    <logger name="wowchat.game.GamePacketDecoder" level="WARN" />
+    <logger name="wowchat.game.GamePacketDecoderWotLK" level="WARN" />
+    <logger name="wowchat.game.GamePacketDecoderCataclysm" level="WARN" />
+    <logger name="wowchat.game.GamePacketDecoderMoP" level="WARN" />
+
+    <!-- Optimize application logging levels -->
+    <logger name="wowchat.discord.MessageResolver" level="INFO" />
+    <logger name="wowchat.game.GameResources" level="INFO" />
+
+    <!-- Root logger with optimized async appender -->
+    <root level="INFO">
+        <appender-ref ref="ASYNC_STDOUT" />
     </root>
 </configuration>

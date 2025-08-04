@@ -2,7 +2,7 @@
 diff --git a/pom.xml b/pom.xml
 --- a/pom.xml
 +++ b/pom.xml
-@@ -1,165 +1,268 @@
+@@ -1,165 +1,259 @@
 -<?xml version="1.0" encoding="UTF-8"?>
 -<project xmlns="http://maven.apache.org/POM/4.0.0"
 -         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -187,12 +187,11 @@ diff --git a/pom.xml b/pom.xml
 +        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 +        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 +        
-+        <!-- Performance-optimized dependency versions -->
-+        <jda.version>4.4.0_352</jda.version>
-+        <netty.version>4.1.108.Final</netty.version>
-+        <logback.version>1.4.14</logback.version>
-+        <scala-logging.version>3.9.5</scala-logging.version>
-+        <typesafe-config.version>1.4.3</typesafe-config.version>
++        <!-- Performance-optimized dependency versions (conservative updates) -->
++        <netty.version>4.1.100.Final</netty.version>
++        <logback.version>1.2.12</logback.version>
++        <scala-logging.version>3.9.4</scala-logging.version>
++        <typesafe-config.version>1.4.2</typesafe-config.version>
 +        <emoji-java.version>5.1.1</emoji-java.version>
 +    </properties>
 +
@@ -236,21 +235,15 @@ diff --git a/pom.xml b/pom.xml
 +            <version>${netty.version}</version>
 +        </dependency>
 +
-+        <!-- Discord API - updated to JDA 5.x from Maven Central -->
++        <!-- Discord API - keep original version for compatibility -->
 +        <dependency>
 +            <groupId>net.dv8tion</groupId>
 +            <artifactId>JDA</artifactId>
-+            <version>${jda.version}</version>
++            <version>3.8.3_464</version>
 +            <exclusions>
-+                <!-- Exclude audio support to reduce bundle size -->
 +                <exclusion>
-+                    <groupId>club.minnced</groupId>
++                    <groupId>org.restcomm.media.core.codec</groupId>
 +                    <artifactId>opus-java</artifactId>
-+                </exclusion>
-+                <!-- Exclude unnecessary components -->
-+                <exclusion>
-+                    <groupId>org.apache.commons</groupId>
-+                    <artifactId>commons-collections4</artifactId>
 +                </exclusion>
 +            </exclusions>
 +        </dependency>
@@ -420,18 +413,16 @@ diff --git a/pom.xml b/pom.xml
 +        </plugins>
 +    </build>
 +
-+    <!-- Use Maven Central instead of deprecated jcenter -->
 +    <repositories>
 +        <repository>
 +            <id>central</id>
 +            <name>Maven Central</name>
 +            <url>https://repo1.maven.org/maven2</url>
-+            <releases>
-+                <enabled>true</enabled>
-+            </releases>
-+            <snapshots>
-+                <enabled>false</enabled>
-+            </snapshots>
++        </repository>
++        <repository>
++            <id>dv8tion</id>
++            <name>DV8FromTheWorld</name>
++            <url>https://m2.dv8tion.net/releases</url>
 +        </repository>
 +    </repositories>
 +</project>
